@@ -619,15 +619,57 @@ class PrimerGenerator:
         print(f"Primer files saved:\n  - {filepath_txt}\n  - {filepath_csv}")
 
     def save_primer_data_json(self, primer_data, output_dir=None, filename="primer_list.json"):
-        """Save primer data as JSON."""
+        """Save primer data as JSON.
+
+        Stores two sections:
+          - "primer_sets": the raw per-pair dicts (forward_tm / reverse_tm etc.)
+          - "primers": a flat per-primer list that mirrors the CSV structure,
+            with a "Tm (C)" key for each primer row so it can be read back
+            consistently by the primer table and any downstream tools.
+        """
         if output_dir is None:
             output_dir = os.path.expanduser("~/Mutagenesis")
 
         os.makedirs(output_dir, exist_ok=True)
         filepath_json = os.path.join(output_dir, filename)
 
+        # Build flat per-primer rows (same structure as primer_list.csv)
+        flat_primers = []
+        for entry in primer_data:
+            all_muts = ",".join(entry['all_covered_mutations'])
+            base_name = "_".join(entry['all_covered_mutations'])
+            overlap_gc = entry.get('overlap_gc_content', 0.0)
+
+            flat_primers.append({
+                "Primer Name": f"{base_name}_for",
+                "Primer Sequence": entry['forward_primer'],
+                "Length": entry['forward_length'],
+                "Tm (C)": entry['forward_tm'],
+                "GC Content (%)": entry.get('forward_gc_content', 0.0),
+                "Overlap Length": entry['overlap_length'],
+                "Overlap Tm": entry['overlap_tm'],
+                "Overlap GC (%)": overlap_gc,
+                "Mutations": all_muts,
+            })
+            flat_primers.append({
+                "Primer Name": f"{base_name}_rev",
+                "Primer Sequence": entry['reverse_primer'],
+                "Length": entry['reverse_length'],
+                "Tm (C)": entry['reverse_tm'],
+                "GC Content (%)": entry.get('reverse_gc_content', 0.0),
+                "Overlap Length": entry['overlap_length'],
+                "Overlap Tm": entry['overlap_tm'],
+                "Overlap GC (%)": overlap_gc,
+                "Mutations": all_muts,
+            })
+
+        output = {
+            "primer_sets": primer_data,   # original pair-level dicts
+            "primers": flat_primers,       # flat per-primer rows with Tm (C)
+        }
+
         with open(filepath_json, 'w') as f:
-            json.dump(primer_data, f, indent=2)
+            json.dump(output, f, indent=2)
 
         print(f"Primer JSON saved to {filepath_json}")
 
@@ -1023,7 +1065,13 @@ class MutagenesisProtocol:
             raise FileNotFoundError(f"Primer JSON not found: {self.primer_json_path}")
 
         with open(self.primer_json_path, "r") as f:
-            primer_data = json.load(f)
+            raw = json.load(f)
+
+        # Support both old format (plain list) and new format (dict with "primer_sets" key)
+        if isinstance(raw, dict):
+            primer_data = raw.get("primer_sets", [])
+        else:
+            primer_data = raw
 
         mutation_to_groups = {}
         primer_groups = {}
