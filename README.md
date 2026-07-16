@@ -1,6 +1,5 @@
 # Installation
-Download the ZIP file here:
-[Download primut_windows.zip](https://drive.google.com/drive/u/0/folders/1jN__IAV8oxhWepiKXnSJsMdjQT2QBw2A)
+Download the executable directly from the Releases section on the right-hand side of the repository. Simply open the latest release and select the appropriate file for your system.
 
 Or to create the .exe file yourself. Download the .spec file and run:
 ```
