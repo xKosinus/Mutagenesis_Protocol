@@ -49,3 +49,5 @@ This repository provides a complete workflow for site-directed mutagenesis exper
   - primer3-py (primer design)
   - reportlab (PDF generation)
   - customtkinter (Windows GUI toolkit)
+
+© 2026 Konstantin Weigmann — licensed under GPL-3.0
