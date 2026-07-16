@@ -1,4 +1,4 @@
-# mytool – helper scripts for XYZ
+# PriMut - Site‑Directed Mutagenesis experiment planning
 # Copyright (C) 2026 Konstantin Weigmann
 #
 # This program is free software: you can redistribute it and/or modify
