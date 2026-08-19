@@ -950,8 +950,14 @@ class MutagenesisProtocol:
         self, protocol_by_round, final_variants, existing_input_variants,
         variant_to_label_map, variant_to_final_variant, used_variants
     ) -> None:
+        serializable_existing = {
+            label: {"existing_label": entry[0], "targeted_mutations": entry[1]}
+                   if isinstance(entry, tuple)
+                   else {"existing_label": entry, "targeted_mutations": "(unknown)"}
+            for label, entry in existing_input_variants.items()
+        }
         protocol_data: Dict = {
-            "existing_input_variants": existing_input_variants,
+            "existing_input_variants": serializable_existing,
             "final_variants_overview": {},
             "protocol_steps":          {},
             "all_variants":            {},
@@ -1005,10 +1011,17 @@ class MutagenesisProtocol:
         if existing_input_variants:
             elements.append(P("<b>Pre-existing Variants in Databank</b>", styles['Heading2']))
             elements.append(Sp(1, 12))
-            data = [['Input Label', 'Existing Variant Label']]
-            for label, existing_label in sorted(existing_input_variants.items()):
-                data.append([label, existing_label or '(unknown)'])
-            tbl = T(data, colWidths=[150, 250])
+            data = [['Targeted Mutations', 'Existing Variant Label']]
+            for _label, entry in sorted(existing_input_variants.items()):
+                if isinstance(entry, tuple):
+                    existing_label, target_mut_str = entry
+                else:
+                    existing_label, target_mut_str = entry, '(unknown)'
+                data.append([
+                    P(target_mut_str, cell_style),
+                    existing_label or '(unknown)',
+                ])
+            tbl = T(data, colWidths=[250, 150])
             tbl.setStyle(TS([
                 ('BACKGROUND', (0, 0), (-1, 0), c.lightgrey),
                 ('GRID',       (0, 0), (-1, -1), 0.5, c.grey),
@@ -1153,7 +1166,10 @@ class MutagenesisProtocol:
                 if not self.list_existing_as_steps:
                     for muts, name in planning_variants.items():
                         if variant_key_str == self.variant_key(muts):
-                            existing_input_variants[variant_label] = name
+                            target_mut_str = ', '.join(
+                                sorted(map(self.normalize_mut, target), key=mutation_position)
+                            )
+                            existing_input_variants[variant_label] = (name, target_mut_str)
                             variant_to_label_map[variant_label]    = target
                             variant_to_final_variant[variant_label] = name
                             used_variants[tuple(sorted(
